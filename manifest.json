@@ -1,0 +1,55 @@
+﻿{
+    "manifest_version":  3,
+    "name":  "ContextBridge",
+    "version":  "1.0.0",
+    "description":  "Capture, summarize, export, and inject AI chat context locally.",
+    "permissions":  [
+                        "storage",
+                        "activeTab",
+                        "scripting",
+                        "downloads"
+                    ],
+    "host_permissions":  [
+                             "https://chat.openai.com/*",
+                             "https://chatgpt.com/*",
+                             "https://claude.ai/*",
+                             "https://gemini.google.com/*",
+                             "https://perplexity.ai/*",
+                             "https://grok.com/*",
+                             "https://api.anthropic.com/*",
+                             "https://api.openai.com/*",
+                             "https://api.groq.com/*",
+                             "https://generativelanguage.googleapis.com/*",
+                             "<all_urls>"
+                         ],
+    "background":  {
+                       "service_worker":  "background.js",
+                       "type":  "module"
+                   },
+    "action":  {
+                   "default_title":  "ContextBridge",
+                   "default_popup":  "popup/popup.html"
+               },
+    "icons":  {
+                  "16":  "icons/icon-16.png",
+                  "48":  "icons/icon-48.png",
+                  "128":  "icons/icon-128.png"
+              },
+    "content_scripts":  [
+                            {
+                                "matches":  [
+                                                "https://chat.openai.com/*",
+                                                "https://chatgpt.com/*",
+                                                "https://claude.ai/*",
+                                                "https://gemini.google.com/*",
+                                                "https://perplexity.ai/*",
+                                                "https://grok.com/*"
+                                            ],
+                                "js":  [
+                                           "content/scraper.js",
+                                           "content/injector.js"
+                                       ],
+                                "run_at":  "document_idle"
+                            }
+                        ]
+}

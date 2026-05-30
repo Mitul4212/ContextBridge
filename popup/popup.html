@@ -1,0 +1,212 @@
+﻿<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ContextBridge</title>
+    <style>
+      :root {
+        --bg: #1e1b17;
+        --fg: #ddd5c8;
+        --muted: #2e2a25;
+        --accent: #c9987a;
+        --ink: #7a6e62;
+        --pen: #7a9ab8;
+        --field: #252119;
+      }
+      * { box-sizing: border-box; }
+      html {
+        border-radius: 20px;
+        overflow: hidden;
+      }
+      body {
+        margin: 0;
+        width: 410px;
+        color: var(--fg);
+        font-family: "Segoe Print", "Comic Sans MS", cursive;
+        background-color: var(--bg);
+        background-image: radial-gradient(#2a2620 1px, transparent 1px);
+        background-size: 24px 24px;
+      }
+      .app { padding: 12px; display: grid; gap: 10px; }
+      .card {
+        background: #2a2520;
+        border: 3px solid var(--ink);
+        border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+        box-shadow: 4px 4px 0 0 var(--ink);
+        padding: 10px;
+      }
+      .header { display: flex; justify-content: space-between; align-items: center; }
+      .title { font-size: 20px; font-weight: 700; }
+      .subtitle { font-size: 12px; opacity: 0.8; }
+      .tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+      .tab {
+        border: 3px solid var(--ink);
+        background: #2a2520;
+        border-radius: 24px 12px 24px 12px;
+        padding: 7px 4px;
+        font-size: 12px;
+        cursor: pointer;
+        box-shadow: 3px 3px 0 0 var(--ink);
+      }
+      .tab.active { background: #3a3520; transform: rotate(-1deg); }
+      .panel { display: none; gap: 8px; }
+      .panel.active { display: grid; }
+      label { font-size: 12px; display: grid; gap: 4px; }
+      input, select, button, textarea {
+        width: 100%;
+        border: 3px solid var(--ink);
+        border-radius: 20px 10px 20px 10px;
+        padding: 8px;
+        font-size: 13px;
+        font-family: inherit;
+        background: var(--field);
+        color: var(--fg);
+      }
+      select {
+        -webkit-appearance: none;
+        appearance: none;
+        padding-right: 30px;
+        background-image:
+          linear-gradient(45deg, transparent 50%, var(--ink) 50%),
+          linear-gradient(135deg, var(--ink) 50%, transparent 50%),
+          linear-gradient(to right, rgba(58, 63, 68, 0.2), rgba(58, 63, 68, 0.2));
+        background-position:
+          calc(100% - 16px) calc(50% - 2px),
+          calc(100% - 10px) calc(50% - 2px),
+          calc(100% - 2.1rem) 50%;
+        background-size: 6px 6px, 6px 6px, 1px 60%;
+        background-repeat: no-repeat;
+      }
+      select:focus, input:focus, textarea:focus {
+        outline: none;
+        border-color: var(--pen);
+        box-shadow: 0 0 0 3px rgba(90, 124, 168, 0.15);
+      }
+      option {
+        background: #252119;
+        color: var(--fg);
+      }
+      textarea { min-height: 90px; resize: vertical; }
+      button {
+        background: #2a2520;
+        box-shadow: 4px 4px 0 0 var(--ink);
+        cursor: pointer;
+      }
+      button:hover { background: #3a3028; color: var(--fg); transform: translate(2px, 2px); box-shadow: 2px 2px 0 0 var(--ink); }
+      button:active { transform: translate(4px, 4px); box-shadow: 0 0 0 0 var(--ink); }
+      .btn-secondary:hover { background: #2a3540; color: var(--fg); }
+      .row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+      .status { font-size: 12px; min-height: 16px; }
+      .ok { color: #6aaa80; }
+      .err { color: #c47a7a; }
+      .list { max-height: 160px; overflow: auto; display: grid; gap: 6px; }
+      .session-item {
+        border: 2px dashed var(--ink);
+        border-radius: 16px 8px 16px 8px;
+        padding: 6px;
+        background: #2a2520;
+      }
+      .meta { font-size: 11px; opacity: 0.8; }
+      .guide { font-size: 12px; line-height: 1.35; }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <div class="card header">
+        <div>
+          <div class="title">ContextBridge</div>
+          <div class="subtitle">Your AI context notebook</div>
+        </div>
+      </div>
+
+      <div class="tabs">
+        <button class="tab active" data-tab="capture">Capture</button>
+        <button class="tab" data-tab="history">History</button>
+        <button class="tab" data-tab="guide">Guide</button>
+        <button class="tab" data-tab="settings">Settings</button>
+      </div>
+
+      <div class="card panel active" id="panel-capture">
+        <label>Export Target
+          <select id="exportTarget">
+            <option value="universal">Universal</option>
+            <option value="claude">Claude</option>
+            <option value="chatgpt">ChatGPT</option>
+            <option value="gemini">Gemini</option>
+            <option value="perplexity">Perplexity</option>
+            <option value="grok">Grok</option>
+          </select>
+        </label>
+        <button id="saveSessionBtn">Save Session</button>
+        <div class="row">
+          <button id="copyExportBtn" class="btn-secondary">Copy Export</button>
+          <button id="downloadExportBtn" class="btn-secondary">Download Export</button>
+        </div>
+        <button id="injectBtn">Inject Into Current Tab</button>
+        <div id="status" class="status"></div>
+      </div>
+
+      <div class="card panel" id="panel-history">
+        <div class="row">
+          <button id="refreshHistoryBtn" class="btn-secondary">Refresh</button>
+          <button id="copyFromHistoryBtn" class="btn-secondary">Copy Selected</button>
+        </div>
+        <label>Session List
+          <select id="sessionSelect"></select>
+        </label>
+        <div class="list" id="historyList"></div>
+        <label>Preview
+          <textarea id="historyPreview" readonly></textarea>
+        </label>
+      </div>
+
+      <div class="card panel" id="panel-guide">
+        <div class="guide">
+          <strong>How to use</strong><br />
+          1. Open a supported AI chat tab.<br />
+          2. Go to <strong>Settings</strong>, pick provider/model, save key.<br />
+          3. In <strong>Capture</strong>, click <strong>Save Session</strong>.<br />
+          4. Copy/download/inject exports instantly.<br /><br />
+          <strong>Tips</strong><br />
+          - Reload extension after updates.<br />
+          - Refresh the AI tab before capture if message connection fails.<br />
+          - Use <strong>History</strong> to recover prior memories.
+        </div>
+      </div>
+
+      <div class="card panel" id="panel-settings">
+        <label>Provider
+          <select id="provider">
+            <option value="anthropic">Anthropic</option>
+            <option value="openai">OpenAI</option>
+            <option value="gemini">Gemini</option>
+            <option value="groq">Groq</option>
+            <option value="custom">Custom (OpenAI-compatible)</option>
+          </select>
+        </label>
+        <label>Model
+          <select id="modelSelect">
+            <option value="">Select model</option>
+            <option value="__custom__">Custom model (type below)</option>
+          </select>
+        </label>
+        <label id="customModelWrap">Custom Model Name
+          <input id="customModel" placeholder="e.g. gemini-3.1-flash-lite" />
+        </label>
+        <label>API Key
+          <input id="apiKey" type="password" autocomplete="off" placeholder="Paste API key" />
+        </label>
+        <label id="customUrlWrap">Custom Base URL
+          <input id="customBaseUrl" placeholder="https://api.example.com/v1/chat/completions" />
+        </label>
+        <div class="row">
+          <button id="fetchModelsBtn" class="btn-secondary">Refresh Models</button>
+          <button id="saveSettingsBtn">Save Settings</button>
+        </div>
+        <div id="settingsStatus" class="status"></div>
+      </div>
+    </div>
+    <script src="popup.js" type="module"></script>
+  </body>
+</html>

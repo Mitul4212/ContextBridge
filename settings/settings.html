@@ -1,0 +1,81 @@
+﻿<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ContextBridge Settings</title>
+    <style>
+      :root { --bg:#1e1b17; --fg:#ddd5c8; --muted:#2e2a25; --accent:#c9987a; --ink:#7a6e62; --pen:#7a9ab8; --field:#252119; }
+      * { box-sizing: border-box; }
+      body { margin: 0; color: var(--fg); font-family: "Segoe Print", "Comic Sans MS", cursive; background: var(--bg); background-image: radial-gradient(#2a2620 1px, transparent 1px); background-size: 24px 24px; }
+      .wrap { max-width: 840px; margin: 20px auto; padding: 0 14px; }
+      .card { background:#2a2520; border:3px solid var(--ink); border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px; box-shadow:4px 4px 0 0 var(--ink); padding:14px; }
+      .grid { display: grid; gap: 12px; }
+      .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+      label { font-size: 13px; display: grid; gap: 6px; }
+      input, select, button { width: 100%; border:3px solid var(--ink); border-radius:20px 10px 20px 10px; padding:10px; font-size:14px; font-family: inherit; background:var(--field); color:var(--fg); }
+      select {
+        -webkit-appearance: none;
+        appearance: none;
+        padding-right: 32px;
+        background-image:
+          linear-gradient(45deg, transparent 50%, var(--ink) 50%),
+          linear-gradient(135deg, var(--ink) 50%, transparent 50%),
+          linear-gradient(to right, rgba(122, 110, 98, 0.3), rgba(122, 110, 98, 0.3));
+        background-position:
+          calc(100% - 16px) calc(50% - 2px),
+          calc(100% - 10px) calc(50% - 2px),
+          calc(100% - 2.1rem) 50%;
+        background-size: 6px 6px, 6px 6px, 1px 60%;
+        background-repeat: no-repeat;
+      }
+      input:focus, select:focus { outline:none; border-color:var(--pen); box-shadow:0 0 0 3px rgba(90,154,184,.15); }
+      option { background:#252119; color:var(--fg); }
+      button { background:#2a2520; box-shadow:4px 4px 0 0 var(--ink); cursor:pointer; }
+      button:hover { background: #3a3028; color: var(--fg); transform: translate(2px,2px); box-shadow:2px 2px 0 0 var(--ink); }
+      button:active { transform: translate(4px,4px); box-shadow:0 0 0 0 var(--ink); }
+      .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+      #status { min-height: 18px; font-size: 12px; color: #6aaa80; }
+      h1 { margin: 0 0 10px; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>ContextBridge Settings</h1>
+      <div class="card grid">
+        <div class="row">
+          <label>Provider
+            <select id="provider">
+              <option value="anthropic">Anthropic</option>
+              <option value="openai">OpenAI</option>
+              <option value="gemini">Gemini</option>
+              <option value="groq">Groq</option>
+              <option value="custom">Custom (OpenAI-compatible)</option>
+            </select>
+          </label>
+          <label>Model
+            <select id="modelSelect">
+              <option value="">Select model</option>
+              <option value="__custom__">Custom model (type below)</option>
+            </select>
+          </label>
+        </div>
+        <label id="customModelWrap">Custom Model Name
+          <input id="customModel" placeholder="e.g. gemini-3.1-flash-lite" />
+        </label>
+        <label>API Key
+          <input id="apiKey" type="password" autocomplete="off" />
+        </label>
+        <label id="customUrlWrap">Custom Base URL
+          <input id="customBaseUrl" placeholder="https://api.example.com/v1/chat/completions" />
+        </label>
+        <div class="actions">
+          <button id="fetchModelsBtn">Refresh Models</button>
+          <button id="saveBtn">Save Settings</button>
+        </div>
+        <div id="status"></div>
+      </div>
+    </div>
+    <script src="settings.js" type="module"></script>
+  </body>
+</html>
