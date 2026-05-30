@@ -5,17 +5,22 @@ You are a context compression expert. Your job is to extract durable, high-fidel
 
 CRITICAL RULES — violating these makes the memory file useless:
 1. NEVER leave "Verified Findings" or "Failed Attempts" empty. These are the two most important sections.
-2. Every button combo, shortcut, command, or test result mentioned in the chat MUST appear in one of these two sections.
-3. If something worked → Verified Findings. If something was tried but failed → Failed Attempts.
-4. Include exact wording: "Capture + Start", "L3 + USB", "START + SELECT + HOME", etc.
-5. Include all numeric values in Measurements / Metrics — battery percentages, LED counts, timings, calibration values, Lighthouse scores, error counts.
-6. "Software Behavior" = ONLY directly observed facts. NO inferences or theories here — those go in Hypothesis.
+2. Every command, config change, test, or action mentioned in the chat MUST appear in one of these two sections.
+3. If something worked or was observed → Verified Findings. If something was tried but failed or caused an error → Failed Attempts.
+4. Include exact wording, file names, flag names, error messages, IDs, and values.
+5. Include all numeric values in Measurements / Metrics — scores, counts, timings, percentages, IDs.
+6. "Software Behavior" = ONLY directly observed facts. NO inferences or theories — those go in Hypothesis.
 7. Decisions must include the reason WHY — not just what was decided.
-8. Separate "Known Issues" (identified problems + workarounds) from "Open Questions" (unresolved unknowns).
-9. "Pending Tasks" must only list tasks NOT yet completed. Do not include tasks already done.
+8. TASK STATUS — read carefully before writing Pending Tasks:
+   - A task is DONE if the transcript shows it was completed, fixed, deployed, or resolved.
+   - A task is PENDING only if it was explicitly mentioned as future work or left unfinished at the end.
+   - Do NOT list completed work as pending. Do NOT list failed attempts as pending tasks.
+9. OPEN QUESTIONS — only list things that are genuinely unresolved at the end of the session.
+   - If a question was answered during the session, do NOT list it as open.
+   - If an issue was fixed, do NOT list it as an open question.
 10. Include a "Key Files" section with exact file paths and their purpose if any files were mentioned.
-11. If the session involves a software project, extract "Tech Stack" and any "SEO / Critical Constraints" that must not be changed.
-12. If the session involves a business or product, extract "Business Context" including IDs, profile URLs, and account statuses.
+11. If the session involves a software project, extract "Tech Stack" and any "SEO / Critical Constraints".
+12. If the session involves a business or product, extract "Business Context" including ALL account IDs, profile URLs, and statuses.
 13. Be concise but NEVER omit concrete evidence.
 
 USER:
@@ -37,7 +42,8 @@ Output ONLY the following markdown structure. Nothing before or after it. Omit a
 [Exact file paths and their purpose that were mentioned or modified. Be specific — agents need exact paths.]
 
 ## Business Context
-[Owner, live URL, GitHub, hosting, target markets, services, pricing, contact details, account IDs (GA4, Supabase, etc.), business profile statuses.]
+[Owner, live URL, GitHub, hosting, target markets, services, pricing, contact details.
+Include ALL account IDs and statuses: GA4 measurement ID, Supabase project ID, Search Console property type, all business profile statuses (Google Business, LinkedIn, Crunchbase, GoodFirms, Clutch, etc.)]
 
 ## Goal
 [What the user was trying to achieve]
@@ -48,8 +54,8 @@ Output ONLY the following markdown structure. Nothing before or after it. Omit a
 ## Verified Findings (Observed)
 [MANDATORY — every fact confirmed by direct observation or testing.
 Format: "- [observation or action] → [result or behavior]"
-Include: things that worked, behaviors observed, environment quirks confirmed.
-Never leave blank.]
+Include: things that worked, behaviors observed, environment quirks confirmed, tool behaviors.
+Never leave blank. If in doubt, include it.]
 
 ## Failed Attempts (and outcome)
 [MANDATORY — every attempt that failed or caused errors.
@@ -57,7 +63,7 @@ Format:
 - Attempt: [what was tried]
   Expected: [what should have happened]
   Actual: [what actually happened / error received]
-Never leave blank.]
+Never leave blank. If in doubt, include it.]
 
 ## Hardware Behavior
 [LED patterns, vibration responses, sleep behavior, charging behavior, pairing behavior observed during the session]
@@ -67,7 +73,7 @@ Never leave blank.]
 Do NOT include inferences or theories here — those go in Hypothesis.]
 
 ## Measurements / Metrics
-[All numeric values: Lighthouse scores, error counts, timings, percentages, calibration values, LED counts, battery levels, TBT, FCP, etc.]
+[All numeric values: Lighthouse scores, error counts, timings, percentages, calibration values, LED counts, battery levels, TBT, FCP, health scores, etc.]
 
 ## Version-Specific Behavior
 [Differences across device/app/model/version/revision. Include workarounds for version-specific bugs.]
@@ -90,32 +96,38 @@ Do NOT include inferences or theories here — those go in Hypothesis.]
 [Unproven theories that could explain observed behavior — move speculative language from other sections here]
 
 ## Known Issues
-[Identified problems with known causes or workarounds. Format: "- [issue] — Cause: [why] — Workaround: [fix or mitigation]"]
+[Problems identified but NOT yet fixed. Format: "- [issue] — Cause: [why] — Workaround: [fix or mitigation]"
+Do NOT list issues that were already resolved during this session.]
 
 ## Pending Tasks
-[ONLY tasks not yet completed, in priority order. Do NOT include tasks already done.
+[ONLY tasks explicitly left unfinished or planned for future sessions. In priority order.
+Do NOT include tasks already completed during this session.
 Format: "1. [task] — [why it matters or what's blocking it]"]
 
 ## Open Questions
-[Things genuinely unresolved or unknown — not issues with known causes]
+[ONLY things genuinely unresolved at the end of the session — not answered, not fixed.
+Do NOT list questions that were answered during the session.]
 
 ## Current State
 [Exactly where things stood at the end - what was done and not done]
 
 ## Resume Prompt
-[A single paragraph in second person to the AI: "We were working on... The last decision was... Please continue by..."]`;
+[A single paragraph in second person to the AI: "We were working on... The last thing completed was... Please continue by..."]`;
 
 export function buildFidelityPatchPrompt(rawChatText, masterFile) {
   return `SYSTEM:
-You are a strict memory auditor. Compare a transcript against a memory file and find everything that was missed.
+You are a strict memory auditor. Compare a transcript against a memory file and find everything that was missed or wrong.
 
 Pay special attention to:
-- "Verified Findings (Observed)" — any button combo, shortcut, command, or test that WORKED must be here. Format: "- [action] → [result]". Never leave empty.
-- "Failed Attempts (and outcome)" — any attempt that FAILED or gave unexpected results must be here. Format: "- Attempt: [what] / Expected: [x] / Actual: [y]". Never leave empty.
-- "Hardware Behavior" — LED patterns, vibration, charging, pairing behavior
-- "Software Behavior" — ONLY directly observed facts (what the screen showed, what the tool reported). Move any speculative language to Hypothesis.
-- "Measurements / Metrics" — any number, percentage, LED count, battery level, timing must be here
-- "Confidence / Status" — Confirmed = directly tested, Likely = strong inference, Hypothesis = unproven theory. Move speculative statements from Software Behavior into Hypothesis.
+- "Verified Findings (Observed)" — any command, config, test, or observation that WORKED or was confirmed must be here. Format: "- [action] → [result]". Never leave empty.
+- "Failed Attempts (and outcome)" — any attempt that FAILED or caused an error must be here. Format: "- Attempt: [what] / Expected: [x] / Actual: [y]". Never leave empty.
+- "Business Context" — extract ALL account IDs (GA4, Supabase project ID), all business profile statuses (Google Business, LinkedIn, Crunchbase, GoodFirms, Clutch, etc.).
+- "Software Behavior" — ONLY directly observed facts. Move any speculative language to Hypothesis.
+- "Measurements / Metrics" — any number, percentage, score, count, timing, ID must be here.
+- "Pending Tasks" — ONLY tasks left unfinished at the END of the session. Remove any tasks that were completed during the session.
+- "Known Issues" — ONLY problems NOT yet fixed. Remove any issues that were resolved during the session.
+- "Open Questions" — ONLY questions unanswered at the END. Remove any that were answered during the session.
+- "Confidence / Status" — Confirmed = directly tested, Likely = strong inference, Hypothesis = unproven theory.
 
 USER:
 Transcript:
@@ -130,28 +142,30 @@ ${masterFile}
 
 Task:
 1) Find every concrete fact in the transcript missing or understated in the memory file.
-2) Check Software Behavior for any speculative/inferential language — move it to Hypothesis.
-3) Return a revised full memory file using the same section structure.
-4) Add only missing facts. Do not remove anything already there.`;
+2) Remove from Pending Tasks, Known Issues, and Open Questions anything that was completed/resolved/answered in the transcript.
+3) Check Software Behavior for speculative language — move it to Hypothesis.
+4) Return a revised full memory file using the same section structure.
+5) Add only missing facts. Do not remove anything that is still accurate.`;
 }
 
 export function buildSectionCompletionPrompt(rawChatText, masterFile) {
   return `SYSTEM:
-You are a precision technical note editor. Your job is to extract concrete evidence from a transcript and fill in missing sections of a memory file.
+You are a precision technical note editor. Your job is to extract concrete evidence from a transcript and fill in missing sections of a memory file, while also removing stale entries.
 
 Rules:
-- Read the ENTIRE transcript carefully for any test results, observations, button presses, commands run, error messages, or outcomes.
+- Read the ENTIRE transcript carefully for any test results, observations, commands run, errors, or outcomes.
 - "Verified Findings" = things directly observed or confirmed to work. Format: "- [action] → [result]". Extract every single one. Never leave blank.
 - "Failed Attempts" = things tried but failed. Format: "- Attempt: [what]\n  Expected: [what should happen]\n  Actual: [what happened]". Extract every single one. Never leave blank.
+- "Business Context" = extract ALL account IDs (GA4 measurement ID, Supabase project ID), ALL business profile statuses with platform names.
 - "Hardware Behavior" = LED patterns, vibration, sleep, charging, pairing behavior observed.
-- "Software Behavior" = ONLY directly observed facts: what Windows showed, what the firmware updater displayed, what third-party tools reported. Do NOT include inferences or theories — move those to Hypothesis.
-- "Measurements / Metrics" = any numbers, percentages, battery levels, timings, counts. Extract all of them.
-- "Confidence / Status" = populate three subsections:
-  ### Confirmed — facts directly verified by testing
-  ### Likely — strong inferences from evidence, not directly tested
-  ### Hypothesis — unproven theories. Also move any speculative language found in Software Behavior here.
-- If a section currently says "None", "N/A", or similar but the transcript contains relevant evidence, REPLACE it with the real findings.
-- If a section truly has no evidence in the transcript, write "- None observed."
+- "Software Behavior" = ONLY directly observed facts. Do NOT include inferences — move those to Hypothesis.
+- "Measurements / Metrics" = any numbers, percentages, scores, IDs, counts. Extract all of them.
+- "Pending Tasks" = ONLY tasks left unfinished at the END. If the transcript shows a task was completed, remove it.
+- "Known Issues" = ONLY problems NOT yet fixed. If the transcript shows an issue was resolved, remove it.
+- "Open Questions" = ONLY questions unanswered at the END. If answered in the transcript, remove them.
+- "Confidence / Status" = Confirmed / Likely / Hypothesis. Move speculative language from Software Behavior to Hypothesis.
+- If a section says "None", "N/A", or similar but the transcript has evidence, REPLACE it.
+- If a section truly has no evidence, write "- None observed."
 - Return the FULL revised memory file with exactly the same section structure. Do not drop any sections.
 
 Transcript:
