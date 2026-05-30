@@ -8,16 +8,15 @@ CRITICAL RULES — violating these makes the memory file useless:
 2. Every button combo, shortcut, command, or test result mentioned in the chat MUST appear in one of these two sections.
 3. If something worked → Verified Findings. If something was tried but failed → Failed Attempts.
 4. Include exact wording: "Capture + Start", "L3 + USB", "START + SELECT + HOME", etc.
-5. Include all numeric values in Measurements / Metrics — battery percentages, LED counts, timings, calibration values.
-6. "Software Behavior" = ONLY directly observed facts (what Windows showed, what the updater said, what the tool reported). NO inferences or theories here.
-7. "Hypothesis" in Confidence/Status = unproven theories. Move any speculative language from Software Behavior into Hypothesis.
-8. For each major finding in Confidence/Status, assign: Confirmed (directly tested), Likely (strong inference), or Hypothesis (unproven theory).
-9. Decisions must include the reason WHY — not just what was decided.
-10. Separate "Known Issues" (identified problems + workarounds) from "Open Questions" (unresolved unknowns).
-11. Include a "Pending Tasks" section listing concrete next steps in priority order.
-12. If the session involves a software project, extract "Tech Stack" and "Key Files" from the conversation.
-13. If the session involves a business or product, extract "Business Context" (owner, URLs, target markets, pricing, contacts).
-14. Be concise but NEVER omit concrete evidence.
+5. Include all numeric values in Measurements / Metrics — battery percentages, LED counts, timings, calibration values, Lighthouse scores, error counts.
+6. "Software Behavior" = ONLY directly observed facts. NO inferences or theories here — those go in Hypothesis.
+7. Decisions must include the reason WHY — not just what was decided.
+8. Separate "Known Issues" (identified problems + workarounds) from "Open Questions" (unresolved unknowns).
+9. "Pending Tasks" must only list tasks NOT yet completed. Do not include tasks already done.
+10. Include a "Key Files" section with exact file paths and their purpose if any files were mentioned.
+11. If the session involves a software project, extract "Tech Stack" and any "SEO / Critical Constraints" that must not be changed.
+12. If the session involves a business or product, extract "Business Context" including IDs, profile URLs, and account statuses.
+13. Be concise but NEVER omit concrete evidence.
 
 USER:
 Here is a full AI chat session. Create a structured Memory File from it.
@@ -32,13 +31,13 @@ Output ONLY the following markdown structure. Nothing before or after it. Omit a
 [1-2 sentences: what this session was fundamentally about. Include project name, owner, live URL if mentioned.]
 
 ## Tech Stack
-[Languages, frameworks, libraries, hosting, databases, services mentioned. Only include if a software project.]
+[Languages, frameworks, libraries, hosting, databases, services, IDs. Only include if a software project.]
 
 ## Key Files
-[File paths and their purpose that were mentioned or modified. Only include if relevant files were discussed.]
+[Exact file paths and their purpose that were mentioned or modified. Be specific — agents need exact paths.]
 
 ## Business Context
-[Owner, live URL, GitHub, hosting, target markets, services, pricing, contact details. Only include if a business/product project.]
+[Owner, live URL, GitHub, hosting, target markets, services, pricing, contact details, account IDs (GA4, Supabase, etc.), business profile statuses.]
 
 ## Goal
 [What the user was trying to achieve]
@@ -47,18 +46,18 @@ Output ONLY the following markdown structure. Nothing before or after it. Omit a
 [Bullet list. Each decision must include the reason: "- [what was decided] — Reason: [why]"]
 
 ## Verified Findings (Observed)
-[MANDATORY — every fact confirmed by direct testing/observation.
-Format: "- [action/shortcut] → [observed result]"
-Include: successful button combinations, LED behaviors, software detections, hardware responses.
-Never leave blank. If in doubt, include it here.]
+[MANDATORY — every fact confirmed by direct observation or testing.
+Format: "- [observation or action] → [result or behavior]"
+Include: things that worked, behaviors observed, environment quirks confirmed.
+Never leave blank.]
 
 ## Failed Attempts (and outcome)
-[MANDATORY — every attempt that failed or gave unexpected results.
+[MANDATORY — every attempt that failed or caused errors.
 Format:
 - Attempt: [what was tried]
   Expected: [what should have happened]
-  Actual: [what actually happened]
-Never leave blank. If in doubt, include it here.]
+  Actual: [what actually happened / error received]
+Never leave blank.]
 
 ## Hardware Behavior
 [LED patterns, vibration responses, sleep behavior, charging behavior, pairing behavior observed during the session]
@@ -68,13 +67,16 @@ Never leave blank. If in doubt, include it here.]
 Do NOT include inferences or theories here — those go in Hypothesis.]
 
 ## Measurements / Metrics
-[All numeric values, error rates, timings, percentages, calibration values, LED counts, battery levels, scores, etc.]
+[All numeric values: Lighthouse scores, error counts, timings, percentages, calibration values, LED counts, battery levels, TBT, FCP, etc.]
 
 ## Version-Specific Behavior
 [Differences across device/app/model/version/revision. Include workarounds for version-specific bugs.]
 
 ## Key Outputs
 [Any important code, formulas, frameworks, structures, or artifacts produced. Include code blocks where relevant. Keep full fidelity - do not truncate code.]
+
+## SEO / Critical Constraints
+[Things that MUST NOT be changed — URLs, headings, schema, canonical tags, config values. Only include if relevant.]
 
 ## Confidence / Status
 
@@ -91,7 +93,8 @@ Do NOT include inferences or theories here — those go in Hypothesis.]
 [Identified problems with known causes or workarounds. Format: "- [issue] — Cause: [why] — Workaround: [fix or mitigation]"]
 
 ## Pending Tasks
-[Concrete next steps in priority order. Format: "1. [task] — [why it matters]"]
+[ONLY tasks not yet completed, in priority order. Do NOT include tasks already done.
+Format: "1. [task] — [why it matters or what's blocking it]"]
 
 ## Open Questions
 [Things genuinely unresolved or unknown — not issues with known causes]
@@ -183,6 +186,7 @@ function extract(masterFile) {
     metrics: pickSection(masterFile, 'Measurements / Metrics'),
     version: pickSection(masterFile, 'Version-Specific Behavior'),
     outputs: pickSection(masterFile, 'Key Outputs'),
+    seoConstraints: pickSection(masterFile, 'SEO / Critical Constraints'),
     confidence: pickSection(masterFile, 'Confidence / Status'),
     knownIssues: pickSection(masterFile, 'Known Issues'),
     pendingTasks: pickSection(masterFile, 'Pending Tasks'),
@@ -203,15 +207,15 @@ export function formatForTarget(masterFile, target) {
   const optionalMd = (heading, value) => value ? `\n\n## ${heading}\n${value}` : '';
 
   if (target === 'claude') {
-    return `<context>\n<project>${s.project}</project>${optionalSection('tech_stack', s.techStack)}${optionalSection('key_files', s.keyFiles)}${optionalSection('business_context', s.businessContext)}\n<goal>${s.goal}</goal>\n<decisions>${s.decisions}</decisions>\n<observed>${s.observed}</observed>\n<failed_attempts>${s.failed}</failed_attempts>${optionalSection('hardware', s.hardware)}${optionalSection('software', s.software)}\n<metrics>${s.metrics}</metrics>${optionalSection('version_specific', s.version)}${optionalSection('outputs', s.outputs)}\n<confidence>${s.confidence}</confidence>${optionalSection('known_issues', s.knownIssues)}${optionalSection('pending_tasks', s.pendingTasks)}${optionalSection('open_questions', s.openQuestions)}\n<current_state>${s.currentState}</current_state>\n</context>\n\n${s.resume}`;
+    return `<context>\n<project>${s.project}</project>${optionalSection('tech_stack', s.techStack)}${optionalSection('key_files', s.keyFiles)}${optionalSection('business_context', s.businessContext)}\n<goal>${s.goal}</goal>\n<decisions>${s.decisions}</decisions>\n<observed>${s.observed}</observed>\n<failed_attempts>${s.failed}</failed_attempts>${optionalSection('hardware', s.hardware)}${optionalSection('software', s.software)}\n<metrics>${s.metrics}</metrics>${optionalSection('version_specific', s.version)}${optionalSection('outputs', s.outputs)}${optionalSection('seo_critical', s.seoConstraints)}\n<confidence>${s.confidence}</confidence>${optionalSection('known_issues', s.knownIssues)}${optionalSection('pending_tasks', s.pendingTasks)}${optionalSection('open_questions', s.openQuestions)}\n<current_state>${s.currentState}</current_state>\n</context>\n\n${s.resume}`;
   }
 
   if (target === 'chatgpt') {
-    return `## Project\n${s.project}${optionalMd('Tech Stack', s.techStack)}${optionalMd('Key Files', s.keyFiles)}${optionalMd('Business Context', s.businessContext)}\n\n## Goal\n${s.goal}\n\n## Decisions\n${s.decisions}\n\n## Verified Findings\n${s.observed}\n\n## Failed Attempts\n${s.failed}${optionalMd('Hardware Behavior', s.hardware)}${optionalMd('Software Behavior', s.software)}\n\n## Metrics\n${s.metrics}${optionalMd('Version-Specific Behavior', s.version)}${optionalMd('Outputs', s.outputs)}\n\n## Confidence / Status\n${s.confidence}${optionalMd('Known Issues', s.knownIssues)}${optionalMd('Pending Tasks', s.pendingTasks)}\n\n## Current State\n${s.currentState}\n\nNow continue by: ${s.resume || 'take the next concrete step.'}`;
+    return `## Project\n${s.project}${optionalMd('Tech Stack', s.techStack)}${optionalMd('Key Files', s.keyFiles)}${optionalMd('Business Context', s.businessContext)}\n\n## Goal\n${s.goal}\n\n## Decisions\n${s.decisions}\n\n## Verified Findings\n${s.observed}\n\n## Failed Attempts\n${s.failed}${optionalMd('Hardware Behavior', s.hardware)}${optionalMd('Software Behavior', s.software)}\n\n## Metrics\n${s.metrics}${optionalMd('Version-Specific Behavior', s.version)}${optionalMd('Outputs', s.outputs)}${optionalMd('SEO / Critical Constraints', s.seoConstraints)}\n\n## Confidence / Status\n${s.confidence}${optionalMd('Known Issues', s.knownIssues)}${optionalMd('Pending Tasks', s.pendingTasks)}\n\n## Current State\n${s.currentState}\n\nNow continue by: ${s.resume || 'take the next concrete step.'}`;
   }
 
   if (target === 'gemini') {
-    return `# Context Brief\n\n## Project\n${s.project}${optionalMd('Tech Stack', s.techStack)}${optionalMd('Key Files', s.keyFiles)}${optionalMd('Business Context', s.businessContext)}\n\n## Goal\n${s.goal}\n\n## Decisions\n${s.decisions}\n\n## Verified Findings\n${s.observed}\n\n## Failed Attempts\n${s.failed}${optionalMd('Hardware Behavior', s.hardware)}${optionalMd('Software Behavior', s.software)}\n\n## Measurements\n${s.metrics}${optionalMd('Version-Specific Behavior', s.version)}${optionalMd('Key Outputs', s.outputs)}\n\n## Confidence / Status\n${s.confidence}${optionalMd('Known Issues', s.knownIssues)}${optionalMd('Pending Tasks', s.pendingTasks)}${optionalMd('Open Questions', s.openQuestions)}\n\n## Current State\n${s.currentState}\n\nPlease continue from here: ${s.resume || 'proceed with the highest-impact next action.'}`;
+    return `# Context Brief\n\n## Project\n${s.project}${optionalMd('Tech Stack', s.techStack)}${optionalMd('Key Files', s.keyFiles)}${optionalMd('Business Context', s.businessContext)}\n\n## Goal\n${s.goal}\n\n## Decisions\n${s.decisions}\n\n## Verified Findings\n${s.observed}\n\n## Failed Attempts\n${s.failed}${optionalMd('Hardware Behavior', s.hardware)}${optionalMd('Software Behavior', s.software)}\n\n## Measurements\n${s.metrics}${optionalMd('Version-Specific Behavior', s.version)}${optionalMd('Key Outputs', s.outputs)}${optionalMd('SEO / Critical Constraints', s.seoConstraints)}\n\n## Confidence / Status\n${s.confidence}${optionalMd('Known Issues', s.knownIssues)}${optionalMd('Pending Tasks', s.pendingTasks)}${optionalMd('Open Questions', s.openQuestions)}\n\n## Current State\n${s.currentState}\n\nPlease continue from here: ${s.resume || 'proceed with the highest-impact next action.'}`;
   }
 
   if (target === 'perplexity') {
@@ -222,5 +226,5 @@ export function formatForTarget(masterFile, target) {
     return `We were working on ${s.project}. Goal: ${s.goal}. Confirmed findings: ${s.observed}. Failed attempts: ${s.failed}.${s.hardware ? ` Hardware behavior: ${s.hardware}.` : ''}${s.software ? ` Software behavior: ${s.software}.` : ''} Current state: ${s.currentState}.${s.pendingTasks ? `\n\nPending tasks:\n${s.pendingTasks}` : ''}\n\nPick up from here: ${s.resume || 'continue with the next action.'}`;
   }
 
-  return `## Project / Topic\n${s.project}${optionalMd('Tech Stack', s.techStack)}${optionalMd('Key Files', s.keyFiles)}${optionalMd('Business Context', s.businessContext)}\n\n## Goal\n${s.goal}\n\n## Decisions Made\n${s.decisions}\n\n## Verified Findings (Observed)\n${s.observed}\n\n## Failed Attempts (and outcome)\n${s.failed}${optionalMd('Hardware Behavior', s.hardware)}${optionalMd('Software Behavior', s.software)}\n\n## Measurements / Metrics\n${s.metrics}${optionalMd('Version-Specific Behavior', s.version)}${optionalMd('Key Outputs', s.outputs)}\n\n## Confidence / Status\n${s.confidence}${optionalMd('Known Issues', s.knownIssues)}${optionalMd('Pending Tasks', s.pendingTasks)}\n\n## Open Questions\n${s.openQuestions}\n\n## Current State\n${s.currentState}\n\n## Resume Prompt\n${s.resume}`;
+  return `## Project / Topic\n${s.project}${optionalMd('Tech Stack', s.techStack)}${optionalMd('Key Files', s.keyFiles)}${optionalMd('Business Context', s.businessContext)}\n\n## Goal\n${s.goal}\n\n## Decisions Made\n${s.decisions}\n\n## Verified Findings (Observed)\n${s.observed}\n\n## Failed Attempts (and outcome)\n${s.failed}${optionalMd('Hardware Behavior', s.hardware)}${optionalMd('Software Behavior', s.software)}\n\n## Measurements / Metrics\n${s.metrics}${optionalMd('Version-Specific Behavior', s.version)}${optionalMd('Key Outputs', s.outputs)}${optionalMd('SEO / Critical Constraints', s.seoConstraints)}\n\n## Confidence / Status\n${s.confidence}${optionalMd('Known Issues', s.knownIssues)}${optionalMd('Pending Tasks', s.pendingTasks)}\n\n## Open Questions\n${s.openQuestions}\n\n## Current State\n${s.currentState}\n\n## Resume Prompt\n${s.resume}`;
 }
