@@ -203,28 +203,52 @@ export function buildMasterPrompt(rawChatText) {
 export function formatForTarget(masterFile, target) {
   const s = extract(masterFile);
 
-  const optionalSection = (label, value) => value ? `\n<${label}>${value}</${label}>` : '';
+  const optionalSection = (label, value) => value ? `\n<${label}>\n${value}\n</${label}>` : '';
   const optionalMd = (heading, value) => value ? `\n\n## ${heading}\n${value}` : '';
 
   if (target === 'claude') {
-    return `<context>\n<project>${s.project}</project>${optionalSection('tech_stack', s.techStack)}${optionalSection('key_files', s.keyFiles)}${optionalSection('business_context', s.businessContext)}\n<goal>${s.goal}</goal>\n<decisions>${s.decisions}</decisions>\n<observed>${s.observed}</observed>\n<failed_attempts>${s.failed}</failed_attempts>${optionalSection('hardware', s.hardware)}${optionalSection('software', s.software)}\n<metrics>${s.metrics}</metrics>${optionalSection('version_specific', s.version)}${optionalSection('outputs', s.outputs)}${optionalSection('seo_critical', s.seoConstraints)}\n<confidence>${s.confidence}</confidence>${optionalSection('known_issues', s.knownIssues)}${optionalSection('pending_tasks', s.pendingTasks)}${optionalSection('open_questions', s.openQuestions)}\n<current_state>${s.currentState}</current_state>\n</context>\n\n${s.resume}`;
+    // Claude: XML tags, all context FIRST, resume prompt (task) at the very END
+    // Per Anthropic docs: putting query at end improves quality up to 30%
+    return `<documents>
+<document index="1">
+<source>context_memory_file</source>
+<document_content>
+<project>${s.project}</project>${optionalSection('tech_stack', s.techStack)}${optionalSection('key_files', s.keyFiles)}${optionalSection('business_context', s.businessContext)}${optionalSection('business_profiles', s.businessContext ? '' : '')}
+<goal>${s.goal}</goal>
+<decisions>${s.decisions}</decisions>
+<observed>${s.observed}</observed>
+<failed_attempts>${s.failed}</failed_attempts>${optionalSection('hardware', s.hardware)}${optionalSection('software', s.software)}
+<metrics>${s.metrics}</metrics>${optionalSection('version_specific', s.version)}${optionalSection('outputs', s.outputs)}${optionalSection('seo_critical', s.seoConstraints)}
+<confidence>${s.confidence}</confidence>${optionalSection('known_issues', s.knownIssues)}${optionalSection('pending_tasks', s.pendingTasks)}${optionalSection('open_questions', s.openQuestions)}
+<current_state>${s.currentState}</current_state>
+</document_content>
+</document>
+</documents>
+
+${s.resume}`;
   }
 
   if (target === 'chatgpt') {
-    return `## Project\n${s.project}${optionalMd('Tech Stack', s.techStack)}${optionalMd('Key Files', s.keyFiles)}${optionalMd('Business Context', s.businessContext)}\n\n## Goal\n${s.goal}\n\n## Decisions\n${s.decisions}\n\n## Verified Findings\n${s.observed}\n\n## Failed Attempts\n${s.failed}${optionalMd('Hardware Behavior', s.hardware)}${optionalMd('Software Behavior', s.software)}\n\n## Metrics\n${s.metrics}${optionalMd('Version-Specific Behavior', s.version)}${optionalMd('Outputs', s.outputs)}${optionalMd('SEO / Critical Constraints', s.seoConstraints)}\n\n## Confidence / Status\n${s.confidence}${optionalMd('Known Issues', s.knownIssues)}${optionalMd('Pending Tasks', s.pendingTasks)}\n\n## Current State\n${s.currentState}\n\nNow continue by: ${s.resume || 'take the next concrete step.'}`;
+    // ChatGPT: Markdown headers, structured clearly
+    return `## Project\n${s.project}${optionalMd('Tech Stack', s.techStack)}${optionalMd('Key Files', s.keyFiles)}${optionalMd('Business Context', s.businessContext)}\n\n## Goal\n${s.goal}\n\n## Decisions\n${s.decisions}\n\n## Verified Findings\n${s.observed}\n\n## Failed Attempts\n${s.failed}${optionalMd('Hardware Behavior', s.hardware)}${optionalMd('Software Behavior', s.software)}\n\n## Metrics\n${s.metrics}${optionalMd('Version-Specific Behavior', s.version)}${optionalMd('Key Outputs', s.outputs)}${optionalMd('SEO / Critical Constraints', s.seoConstraints)}\n\n## Confidence / Status\n${s.confidence}${optionalMd('Known Issues', s.knownIssues)}${optionalMd('Pending Tasks', s.pendingTasks)}${optionalMd('Open Questions', s.openQuestions)}\n\n## Current State\n${s.currentState}\n\n---\n\n${s.resume || 'Please continue from where we left off.'}`;
   }
 
   if (target === 'gemini') {
-    return `# Context Brief\n\n## Project\n${s.project}${optionalMd('Tech Stack', s.techStack)}${optionalMd('Key Files', s.keyFiles)}${optionalMd('Business Context', s.businessContext)}\n\n## Goal\n${s.goal}\n\n## Decisions\n${s.decisions}\n\n## Verified Findings\n${s.observed}\n\n## Failed Attempts\n${s.failed}${optionalMd('Hardware Behavior', s.hardware)}${optionalMd('Software Behavior', s.software)}\n\n## Measurements\n${s.metrics}${optionalMd('Version-Specific Behavior', s.version)}${optionalMd('Key Outputs', s.outputs)}${optionalMd('SEO / Critical Constraints', s.seoConstraints)}\n\n## Confidence / Status\n${s.confidence}${optionalMd('Known Issues', s.knownIssues)}${optionalMd('Pending Tasks', s.pendingTasks)}${optionalMd('Open Questions', s.openQuestions)}\n\n## Current State\n${s.currentState}\n\nPlease continue from here: ${s.resume || 'proceed with the highest-impact next action.'}`;
+    // Gemini: Context FIRST, bridge phrase, then task at END
+    // Per Google docs: "supply all context first, place instructions at the very end"
+    return `# Session Context\n\n## Project\n${s.project}${optionalMd('Tech Stack', s.techStack)}${optionalMd('Key Files', s.keyFiles)}${optionalMd('Business Context', s.businessContext)}\n\n## Goal\n${s.goal}\n\n## Decisions\n${s.decisions}\n\n## Verified Findings\n${s.observed}\n\n## Failed Attempts\n${s.failed}${optionalMd('Hardware Behavior', s.hardware)}${optionalMd('Software Behavior', s.software)}\n\n## Measurements\n${s.metrics}${optionalMd('Version-Specific Behavior', s.version)}${optionalMd('Key Outputs', s.outputs)}${optionalMd('SEO / Critical Constraints', s.seoConstraints)}\n\n## Confidence / Status\n${s.confidence}${optionalMd('Known Issues', s.knownIssues)}${optionalMd('Pending Tasks', s.pendingTasks)}${optionalMd('Open Questions', s.openQuestions)}\n\n## Current State\n${s.currentState}\n\n---\n\nBased on the context above, ${s.resume || 'please continue from where we left off.'}`;
   }
 
   if (target === 'perplexity') {
-    return `Goal: ${s.goal}\nCurrent state: ${s.currentState}\nKey observed facts: ${s.observed}\nFailed attempts: ${s.failed}\nPending tasks: ${s.pendingTasks || 'none'}\nNext question: ${s.resume || 'What is the best next step?'}`;
+    // Perplexity: Search-focused, concise facts + clear next question
+    return `**Project:** ${s.project}\n\n**Goal:** ${s.goal}\n\n**Current State:** ${s.currentState}\n\n**Key Facts:**\n${s.observed}\n\n**What Failed:**\n${s.failed}\n\n**Pending:**\n${s.pendingTasks || 'none'}\n\n**Open Questions:**\n${s.openQuestions || 'none'}\n\n---\n\n${s.resume || 'What is the best next step?'}`;
   }
 
   if (target === 'grok') {
-    return `We were working on ${s.project}. Goal: ${s.goal}. Confirmed findings: ${s.observed}. Failed attempts: ${s.failed}.${s.hardware ? ` Hardware behavior: ${s.hardware}.` : ''}${s.software ? ` Software behavior: ${s.software}.` : ''} Current state: ${s.currentState}.${s.pendingTasks ? `\n\nPending tasks:\n${s.pendingTasks}` : ''}\n\nPick up from here: ${s.resume || 'continue with the next action.'}`;
+    // Grok: Structured plain text, direct and concise
+    return `Context for continuing our session:\n\nProject: ${s.project}\nGoal: ${s.goal}\n${s.techStack ? `\nTech stack: ${s.techStack}` : ''}${s.keyFiles ? `\nKey files: ${s.keyFiles}` : ''}\n\nWhat we confirmed works:\n${s.observed}\n\nWhat failed:\n${s.failed}\n${s.hardware ? `\nHardware behavior: ${s.hardware}` : ''}${s.software ? `\nSoftware behavior: ${s.software}` : ''}\n\nMetrics: ${s.metrics}\n${s.knownIssues ? `\nKnown issues: ${s.knownIssues}` : ''}${s.pendingTasks ? `\nPending tasks:\n${s.pendingTasks}` : ''}\n\nCurrent state: ${s.currentState}\n\n${s.resume || 'Continue with the next action.'}`;
   }
 
+  // Universal: Clean markdown, context first, resume prompt last
   return `## Project / Topic\n${s.project}${optionalMd('Tech Stack', s.techStack)}${optionalMd('Key Files', s.keyFiles)}${optionalMd('Business Context', s.businessContext)}\n\n## Goal\n${s.goal}\n\n## Decisions Made\n${s.decisions}\n\n## Verified Findings (Observed)\n${s.observed}\n\n## Failed Attempts (and outcome)\n${s.failed}${optionalMd('Hardware Behavior', s.hardware)}${optionalMd('Software Behavior', s.software)}\n\n## Measurements / Metrics\n${s.metrics}${optionalMd('Version-Specific Behavior', s.version)}${optionalMd('Key Outputs', s.outputs)}${optionalMd('SEO / Critical Constraints', s.seoConstraints)}\n\n## Confidence / Status\n${s.confidence}${optionalMd('Known Issues', s.knownIssues)}${optionalMd('Pending Tasks', s.pendingTasks)}\n\n## Open Questions\n${s.openQuestions}\n\n## Current State\n${s.currentState}\n\n## Resume Prompt\n${s.resume}`;
 }
