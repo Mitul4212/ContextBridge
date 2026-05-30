@@ -4,13 +4,15 @@ export const MASTER_SUMMARIZATION_PROMPT = String.raw`SYSTEM:
 You are a context compression expert. Your job is to extract durable, high-fidelity memory from an AI chat session so anyone can resume exactly from where it stopped.
 
 CRITICAL RULES — violating these makes the memory file useless:
-1. NEVER leave "Verified Findings", "Failed Attempts", "Hardware Behavior", or "Software Behavior" empty.
-2. Every button combo, shortcut, command, or test result mentioned in the chat MUST appear in one of these sections.
+1. NEVER leave "Verified Findings" or "Failed Attempts" empty. These are the two most important sections.
+2. Every button combo, shortcut, command, or test result mentioned in the chat MUST appear in one of these two sections.
 3. If something worked → Verified Findings. If something was tried but failed → Failed Attempts.
 4. Include exact wording: "Capture + Start", "L3 + USB", "START + SELECT + HOME", etc.
 5. Include all numeric values in Measurements / Metrics — battery percentages, LED counts, timings, calibration values.
-6. For each major finding, assign a confidence level: Confirmed / Likely / Hypothesis.
-7. Be concise but NEVER omit concrete evidence.
+6. "Software Behavior" = ONLY directly observed facts (what Windows showed, what the updater said, what the tool reported). NO inferences or theories here.
+7. "Hypothesis" in Confidence/Status = unproven theories (e.g. "firmware uses a different bootloader"). Move any speculative language from Software Behavior into Hypothesis.
+8. For each major finding in Confidence/Status, assign: Confirmed (directly tested), Likely (strong inference), or Hypothesis (unproven theory).
+9. Be concise but NEVER omit concrete evidence.
 
 USER:
 Here is a full AI chat session. Create a structured Memory File from it.
@@ -32,9 +34,9 @@ Output ONLY the following markdown structure. Nothing before or after it.
 
 ## Verified Findings (Observed)
 [MANDATORY — every fact confirmed by direct testing/observation.
-Format: "- [action/shortcut] → [observed result] — [Confirmed/Likely/Hypothesis]"
+Format: "- [action/shortcut] → [observed result]"
 Include: successful button combinations, LED behaviors, software detections, hardware responses.
-Never leave blank.]
+Never leave blank. If in doubt, include it here.]
 
 ## Failed Attempts (and outcome)
 [MANDATORY — every attempt that failed or gave unexpected results.
@@ -42,13 +44,14 @@ Format:
 - Attempt: [what was tried]
   Expected: [what should have happened]
   Actual: [what actually happened]
-Never leave blank.]
+Never leave blank. If in doubt, include it here.]
 
 ## Hardware Behavior
 [LED patterns, vibration responses, sleep behavior, charging behavior, pairing behavior observed during the session]
 
 ## Software Behavior
-[Windows detection, Device Manager names, firmware updater behavior, third-party tool behavior]
+[ONLY directly observed facts: Windows detection names, what firmware updater showed on screen, what third-party tools reported.
+Do NOT include inferences or theories here — those go in Hypothesis.]
 
 ## Measurements / Metrics
 [All numeric values, error rates, timings, percentages, calibration values, LED counts, battery levels, etc.]
@@ -68,7 +71,7 @@ Never leave blank.]
 [Strong inferences based on observed evidence, not directly tested]
 
 ### Hypothesis
-[Unproven theories that could explain observed behavior]
+[Unproven theories that could explain observed behavior — move speculative language from other sections here]
 
 ## Open Questions
 [Things unresolved or left for later]
@@ -84,14 +87,12 @@ export function buildFidelityPatchPrompt(rawChatText, masterFile) {
 You are a strict memory auditor. Compare a transcript against a memory file and find everything that was missed.
 
 Pay special attention to:
-- "Verified Findings (Observed)" — any button combo, shortcut, command, or test that WORKED must be here
-- "Failed Attempts (and outcome)" — any attempt that FAILED or gave unexpected results must be here
+- "Verified Findings (Observed)" — any button combo, shortcut, command, or test that WORKED must be here. Format: "- [action] → [result]". Never leave empty.
+- "Failed Attempts (and outcome)" — any attempt that FAILED or gave unexpected results must be here. Format: "- Attempt: [what] / Expected: [x] / Actual: [y]". Never leave empty.
 - "Hardware Behavior" — LED patterns, vibration, charging, pairing behavior
-- "Software Behavior" — Windows detection, Device Manager names, firmware updater, third-party tools
+- "Software Behavior" — ONLY directly observed facts (what the screen showed, what the tool reported). Move any speculative language to Hypothesis.
 - "Measurements / Metrics" — any number, percentage, LED count, battery level, timing must be here
-- "Confidence / Status" — populate Confirmed / Likely / Hypothesis based on evidence strength
-
-These sections must NEVER be empty or vague. If the current memory file has them empty or thin, fill them from the transcript.
+- "Confidence / Status" — Confirmed = directly tested, Likely = strong inference, Hypothesis = unproven theory. Move speculative statements from Software Behavior into Hypothesis.
 
 USER:
 Transcript:
@@ -105,9 +106,10 @@ ${masterFile}
 </memory>
 
 Task:
-1) Find every concrete fact in the transcript that is missing or understated in the memory file.
-2) Return a revised full memory file using the same section structure.
-3) Add only missing facts. Do not remove anything already there.`;
+1) Find every concrete fact in the transcript missing or understated in the memory file.
+2) Check Software Behavior for any speculative/inferential language — move it to Hypothesis.
+3) Return a revised full memory file using the same section structure.
+4) Add only missing facts. Do not remove anything already there.`;
 }
 
 export function buildSectionCompletionPrompt(rawChatText, masterFile) {
@@ -116,15 +118,15 @@ You are a precision technical note editor. Your job is to extract concrete evide
 
 Rules:
 - Read the ENTIRE transcript carefully for any test results, observations, button presses, commands run, error messages, or outcomes.
-- "Verified Findings" = things directly observed or confirmed to work. Format: "- [action] → [result] — [Confirmed/Likely/Hypothesis]". Extract every single one.
-- "Failed Attempts" = things tried but failed. Format: "- Attempt: [what]\n  Expected: [what should happen]\n  Actual: [what happened]". Extract every single one.
+- "Verified Findings" = things directly observed or confirmed to work. Format: "- [action] → [result]". Extract every single one. Never leave blank.
+- "Failed Attempts" = things tried but failed. Format: "- Attempt: [what]\n  Expected: [what should happen]\n  Actual: [what happened]". Extract every single one. Never leave blank.
 - "Hardware Behavior" = LED patterns, vibration, sleep, charging, pairing behavior observed.
-- "Software Behavior" = Windows detection, Device Manager names, firmware updater behavior, third-party tool behavior.
+- "Software Behavior" = ONLY directly observed facts: what Windows showed, what the firmware updater displayed, what third-party tools reported. Do NOT include inferences or theories — move those to Hypothesis.
 - "Measurements / Metrics" = any numbers, percentages, battery levels, timings, counts. Extract all of them.
 - "Confidence / Status" = populate three subsections:
   ### Confirmed — facts directly verified by testing
   ### Likely — strong inferences from evidence, not directly tested
-  ### Hypothesis — unproven theories that could explain observed behavior
+  ### Hypothesis — unproven theories. Also move any speculative language found in Software Behavior here.
 - If a section currently says "None", "N/A", or similar but the transcript contains relevant evidence, REPLACE it with the real findings.
 - If a section truly has no evidence in the transcript, write "- None observed."
 - Return the FULL revised memory file with exactly the same section structure. Do not drop any sections.
