@@ -2,7 +2,7 @@
 import { listModelsForProvider } from './api/models.js';
 import { buildMasterPrompt, buildFidelityPatchPrompt, buildSectionCompletionPrompt, formatForTarget, EXPORT_TARGETS } from './export/formatter.js';
 import { getSettings, normalizeSettings, setSettings } from './settings/store.js';
-import { saveSession, getLatestSession, listSessions, getSessionById } from './storage/sessions.js';
+import { saveSession, updateSession, getLatestSession, listSessions, getSessionById } from './storage/sessions.js';
 
 function sendToTab(tabId, message) {
   return new Promise((resolve, reject) => {
@@ -113,6 +113,17 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       const next = normalizeSettings(message.config || {});
       await setSettings(next);
       return { ok: true, data: next };
+    }
+    if (message.type === 'CB_UPDATE_SESSION') {
+      const session = await getSessionById(message.id);
+      if (!session) throw new Error('Session not found.');
+      const masterFile = message.masterFile;
+      const exports = {};
+      for (const target of EXPORT_TARGETS) {
+        exports[target] = formatForTarget(masterFile, target);
+      }
+      const updated = await updateSession(message.id, { masterFile, exports });
+      return { ok: true, data: updated };
     }
     if (message.type === 'CB_PING') return { ok: true, data: { ready: true } };
 

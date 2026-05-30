@@ -156,9 +156,11 @@
           <select id="sessionSelect"></select>
         </label>
         <div class="list" id="historyList"></div>
-        <label>Preview
-          <textarea id="historyPreview" readonly></textarea>
+        <label>Memory File <span id="editHint" style="opacity:0.6;font-size:11px;">(editable — fix pending tasks, add findings)</span>
+          <textarea id="historyPreview"></textarea>
         </label>
+        <button id="saveEditBtn">Save Edits</button>
+        <div id="historyStatus" class="status"></div>
       </div>
 
       <div class="card panel" id="panel-guide">

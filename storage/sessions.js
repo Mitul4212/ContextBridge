@@ -14,6 +14,15 @@ export async function saveSession(session) {
   return record;
 }
 
+export async function updateSession(id, updates) {
+  const sessions = await listSessions();
+  const idx = sessions.findIndex((s) => s.id === id);
+  if (idx === -1) throw new Error('Session not found.');
+  sessions[idx] = { ...sessions[idx], ...updates };
+  await chrome.storage.local.set({ [SESSIONS_KEY]: sessions });
+  return sessions[idx];
+}
+
 export async function getLatestSession() {
   const sessions = await listSessions();
   return sessions[0] || null;

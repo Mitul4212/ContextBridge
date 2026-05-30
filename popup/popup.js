@@ -204,6 +204,16 @@ async function copySelectedFromHistory() {
   setStatus('Selected history memory copied.');
 }
 
+async function saveSessionEdit() {
+  const id = document.getElementById('sessionSelect').value;
+  if (!id) return setStatus('No session selected.', true, 'historyStatus');
+  const masterFile = document.getElementById('historyPreview').value.trim();
+  if (!masterFile) return setStatus('Memory file is empty.', true, 'historyStatus');
+  setStatus('Saving edits...', false, 'historyStatus');
+  await sendRuntime({ type: 'CB_UPDATE_SESSION', id, masterFile });
+  setStatus('Edits saved. Exports regenerated.', false, 'historyStatus');
+}
+
 function bindAction(id, fn, statusId = 'status') {
   document.getElementById(id).addEventListener('click', async () => {
     try {
@@ -253,6 +263,7 @@ async function init() {
 
   bindAction('refreshHistoryBtn', loadHistory);
   bindAction('copyFromHistoryBtn', copySelectedFromHistory);
+  bindAction('saveEditBtn', saveSessionEdit, 'historyStatus');
   document.getElementById('sessionSelect').addEventListener('change', loadSelectedSessionPreview);
 
   await fetchModels(true);
