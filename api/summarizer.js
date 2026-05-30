@@ -1,6 +1,10 @@
 ﻿function ensureOk(response, bodyText) {
   if (!response.ok) {
-    throw new Error(`API request failed (${response.status}): ${bodyText.slice(0, 400)}`);
+    const preview = bodyText.slice(0, 400);
+    if (response.status === 504 || response.status === 502 || response.status === 503) {
+      throw new Error(`API gateway timeout (${response.status}). The custom endpoint did not respond in time. Check that the base URL is correct and the server is running.`);
+    }
+    throw new Error(`API request failed (${response.status}): ${preview}`);
   }
 }
 
@@ -17,6 +21,22 @@ function normalizeGeminiModel(model) {
   return raw.startsWith('models/') ? raw.slice('models/'.length) : raw;
 }
 
+async function fetchWithTimeout(url, options, timeoutMs = 60000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    return response;
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      throw new Error(`Request timed out after ${timeoutMs / 1000}s. The custom endpoint is too slow or unreachable.`);
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function callOpenAICompatible(config, promptText) {
   const url = getOpenAIUrl(config.provider, config.customBaseUrl);
   if (!url) throw new Error('Missing API URL for provider.');
@@ -27,14 +47,14 @@ async function callOpenAICompatible(config, promptText) {
     temperature: 0.2
   };
 
-  const response = await fetch(url, {
+  const response = await fetchWithTimeout(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${config.apiKey}`
     },
     body: JSON.stringify(payload)
-  });
+  }, 90000);
 
   const text = await response.text();
   ensureOk(response, text);
@@ -44,7 +64,7 @@ async function callOpenAICompatible(config, promptText) {
 }
 
 async function callAnthropic(config, promptText) {
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
+  const response = await fetchWithTimeout('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -57,7 +77,7 @@ async function callAnthropic(config, promptText) {
       temperature: 0.2,
       messages: [{ role: 'user', content: promptText }]
     })
-  });
+  }, 90000);
 
   const text = await response.text();
   ensureOk(response, text);
@@ -71,7 +91,7 @@ async function callGemini(config, promptText) {
   const model = normalizeGeminiModel(config.model);
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
 
-  const response = await fetch(url, {
+  const response = await fetchWithTimeout(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -81,7 +101,7 @@ async function callGemini(config, promptText) {
       contents: [{ role: 'user', parts: [{ text: promptText }] }],
       generationConfig: { temperature: 0.2, maxOutputTokens: 7000 }
     })
-  });
+  }, 90000);
 
   const text = await response.text();
   ensureOk(response, text);
